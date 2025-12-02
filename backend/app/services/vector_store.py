@@ -36,15 +36,33 @@ def index_shows():
 
     documents = []
     for show in shows:
+        # Convert tropes list to string, or empty string if None
+        tropes_str = ", ".join(show.tropes) if show.tropes else ""
+
         # We combine title, genres, and synopsis into one block of text
         # This gives the AI the full context of the show.
-        page_content = f"Title: {show.title}\nGenres: {', '.join(show.genres)}\nSynopsis: {show.synopsis}"
+        # We now include the AI-detected tropes in the vector embedding!
+        # This makes the search engine MUCH smarter.
+        page_content = f"""
+        Title: {show.title}
+        Genres: {', '.join(show.genres)}
+        Tags: {', '.join(show.tags)}
+        Tropes: {tropes_str}
+        Verdict: {show.verdict}
+        Synopsis: {show.synopsis}
+        """
         
         # Create a LangChain Document object
         # We store metadata (id, title) so we can retrieve the specific show later
         doc = Document(
             page_content=page_content,
-            metadata={"show_id": show.id, "title": show.title}
+            metadata={
+                "show_id": show.id, 
+                "title": show.title,
+                "image_url": show.image_url or "",
+                "rating": show.rating or 0.0,
+                "verdict": show.verdict or "Rated Fairly"
+            }
         )
         documents.append(doc)
 
