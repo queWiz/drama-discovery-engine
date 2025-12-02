@@ -16,7 +16,7 @@ def populate_database():
 
         print("Database is empty. Starting to scrape and populate...")
         # Let's scrape 3 pages for a good amount of data (~60 shows)
-        dramas = scrape_top_dramas(num_pages=3)
+        dramas = scrape_top_dramas(num_pages=10)
         
         for drama_data in dramas:
             # Check if the show already exists to avoid duplicates
@@ -25,8 +25,11 @@ def populate_database():
                 db_show = models.Show(
                     title=drama_data['title'],
                     synopsis=drama_data['synopsis'],
+                    image_url=drama_data['image_url'],
+                    reviews=drama_data['reviews'],
                     genres=drama_data['genres'],
-                    image_url=drama_data['image_url']
+                    tags=drama_data['tags'],
+                    rating=drama_data['rating']
                 )
                 db.add(db_show)
         

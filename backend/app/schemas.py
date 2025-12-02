@@ -6,7 +6,14 @@ class ShowBase(BaseModel):
     title: str
     synopsis: Optional[str] = None
     image_url: Optional[str] = None
+    reviews: Optional[str] = None
+    
     genres: List[str] = []
+    tags: List[str] = []      # <--- New
+    rating: Optional[float] = 0.0 # <--- New
+    
+    tropes: Optional[List[str]] = None
+    verdict: Optional[str] = None # <--- New
 
 class Show(ShowBase):
     id: int

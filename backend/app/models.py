@@ -1,5 +1,5 @@
 # in backend/app/models.py
-from sqlalchemy import Column, Integer, String, Text, JSON
+from sqlalchemy import Column, Integer, String, Text, JSON, Float
 from .database import Base
 
 class Show(Base):
@@ -8,5 +8,14 @@ class Show(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, unique=True)
     synopsis = Column(Text, nullable=True)
-    genres = Column(JSON) # Storing a list of strings
     image_url = Column(String, nullable=True)
+    reviews = Column(Text, nullable=True)
+    
+    # --- UPDATED COLUMNS ---
+    genres = Column(JSON)          # e.g., ["Thriller", "Mystery"]
+    tags = Column(JSON)            # e.g., ["Strong Male Lead", "Murder"]
+    rating = Column(Float)         # e.g., 8.7
+    
+    # --- AI ANALYSIS COLUMNS ---
+    tropes = Column(JSON)          # AI detected vibes
+    verdict = Column(String)       # "Underrated", "Overrated", "Rated Fairly"
