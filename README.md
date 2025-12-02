@@ -1,51 +1,28 @@
-# Drama Discovery Engine 🎬
+# 🎬 Drama Discovery Engine
 
-> An AI-powered recommendation engine for discovering new anime and K-dramas based on specific plot points, character archetypes, and thematic tropes.
+> A RAG-powered recommendation engine that understands narrative tropes, not just metadata.
 
-![Project Demo GIF](link-to-your-demo-gif-once-you-have-one.gif)
+[![Demo Video](link_to_gif_or_thumbnail)](link_to_video)
 
----
+## 🚀 The Problem
+Generic search engines (like MyDramaList) rely on static tags. They can't answer "I want a show that feels like *Goblin* but with a happier ending." LLMs (like ChatGPT) hallucinate shows that don't exist.
 
-## 🌟 About The Project
+## 💡 The Solution
+I built a **Hybrid Search Engine** that combines:
+1.  **Determinism:** SQL filtering for hard constraints (Rating, Year).
+2.  **Semantics:** Vector Search (ChromaDB) for narrative vibes.
+3.  **Data Enrichment:** An offline AI Agent that analyzes user reviews to tag shows as "Underrated" or "Overrated" and extracts tropes not found in official metadata.
 
-This project goes beyond simple genre-based recommendations. It uses natural language processing (NLP) on show synopses and reviews to identify specific tropes (e.g., "childhood friends to lovers," "tournament arc," "amnesia plot"), allowing users to find content that perfectly matches their tastes.
+## 🛠️ Tech Stack
+*   **AI/LLM:** Google Gemini 2.5 Flash, LangChain, HuggingFace Embeddings
+*   **Vector DB:** ChromaDB
+*   **Backend:** FastAPI, SQLAlchemy (SQLite), Cloudscraper
+*   **Frontend:** Vue 3, Lucide Icons, Glassmorphism UI
 
-### Built With
+## 🏗️ Architecture
+[Insert Screenshot of Excalidraw Diagram here]
 
-*   **Backend:** Python, FastAPI
-*   **Frontend:** Vue.js (or React)
-*   **Database:** PostgreSQL (or SQLite for simplicity)
-*   **AI/ML:** Scikit-learn, spaCy, Sentence-Transformers
-*   **Deployment:** Docker, Render (Backend), Vercel (Frontend)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-*   Python 3.9+
-*   Node.js v16+
-*   ...
-
-### Installation
-
-1.  Clone the repo
-    ```sh
-    git clone https://github.com/your-username/your-repo-name.git
-    ```
-2.  Install backend dependencies
-    ```sh
-    cd backend
-    pip install -r requirements.txt
-    ```
-3.  ... (add more steps as you build)
-
----
-
-## ✨ Features
-
-*   [ ] Search for shows by title.
-*   [ ] Detailed view with synopsis, cast, and genres.
-*   [ ] AI-powered trope tagging and search.
-*   [ ] Personalized recommendations based on user ratings.
+## ✨ Key Features
+*   **Trope Hunter:** Offline agent analyzes thousands of reviews to identify specific tropes (e.g., "Contract Marriage").
+*   **Verdict System:** AI acts as a critic to label shows based on the disparity between Rating and Sentiment.
+*   **Deep Pagination:** Custom scraper capable of ingesting unlimited datasets from MDL.
