@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { marked } from 'marked'
-import { Search, SlidersHorizontal, Star, PlayCircle, Bookmark, TrendingUp, AlertCircle, X, ChevronDown } from 'lucide-vue-next'
+import { Search, SlidersHorizontal, Star, PlayCircle, Bookmark, TrendingUp, AlertCircle, Info, Link, Check, Loader2, ChevronDown } from 'lucide-vue-next'
 
 const query = ref('')
 const answer = ref('')
@@ -23,7 +23,82 @@ const years = ['All', '2020+', '2015-2019', 'Classic']
 const tropes = ['Revenge', 'Enemies to Lovers', 'Love Triangle', 'Contract Marriage', 'Underdog', 'Supernatural']
 const sources = ref([])
 
+// --- STATE: MDL INTEGRATION ---
+const showMdlModal = ref(false)
+const mdlUsername = ref('')
+const isSyncing = ref(false)
+const watchedShows = ref([]) // Stores the list of shows the user has seen
+const syncStatus = ref('')   // "Success! Found 42 shows."
+
+// --- NEW STATE: MODAL & BOOKMARKS ---
+const selectedDrama = ref(null) // Holds the data of the clicked drama
+const bookmarks = ref(new Set()) // Using a Set for easy check (has/add/delete)
+
 const formattedAnswer = computed(() => answer.value ? marked(answer.value) : '')
+
+// Helper for Match Badge Styling
+const getMatchClass = (index) => {
+  if (index === 0) return 'match-top'
+  if (index < 3) return 'match-high'
+  return 'match-base'
+}
+
+// Load bookmarks on startup
+onMounted(() => {
+  const saved = localStorage.getItem('drama_bookmarks')
+  if (saved) {
+    bookmarks.value = new Set(JSON.parse(saved))
+  }
+})
+
+const toggleBookmark = (drama) => {
+  if (bookmarks.value.has(drama.title)) {
+    bookmarks.value.delete(drama.title)
+  } else {
+    bookmarks.value.add(drama.title)
+  }
+  // Save to browser storage
+  localStorage.setItem('drama_bookmarks', JSON.stringify([...bookmarks.value]))
+}
+
+const openDetails = (drama) => {
+  selectedDrama.value = drama
+}
+
+// Helper to turn "Tag A, Tag B" string back into an Array
+const parseList = (str) => {
+  if (!str) return []
+  return str.split(', ')
+}
+
+const syncMDL = async () => {
+  if (!mdlUsername.value) return
+  
+  isSyncing.value = true
+  syncStatus.value = ''
+  
+  try {
+    // Call the backend endpoint you created earlier
+    const response = await axios.post(import.meta.env.VITE_API_URL + '/user/sync', {
+      profile_url: mdlUsername.value
+    })
+    
+    watchedShows.value = response.data.watched_titles
+    syncStatus.value = `Synced! We'll ignore ${response.data.count} shows you've seen.`
+    
+    // Auto close after 2 seconds
+    setTimeout(() => {
+      showMdlModal.value = false
+      syncStatus.value = ''
+    }, 2500)
+    
+  } catch (error) {
+    console.error(error)
+    syncStatus.value = "Error: Could not find public profile."
+  } finally {
+    isSyncing.value = false
+  }
+}
 
 const askAI = async () => {
   if (!query.value) return
@@ -36,12 +111,13 @@ const askAI = async () => {
   isFocused.value = false // Remove focus mode on search
   
   try {
-    const response = await axios.post('http://127.0.0.1:8000/chat', {
+    const response = await axios.post(import.meta.env.VITE_API_URL + '/chat', {
       message: query.value,
       genre: selectedGenre.value,
       rating: parseInt(selectedRating.value),
       year: selectedYear.value,
-      trope: selectedTrope.value
+      trope: selectedTrope.value,
+      watched_history: watchedShows.value
     })
     answer.value = response.data.answer
     sources.value = response.data.sources
@@ -111,8 +187,11 @@ const openTrailer = (title) => {
         </button>
 
         <!-- MDL Profile -->
-        <div class="user-profile">
-          <div class="avatar-circle">MDL</div>
+        <div class="user-profile" @click="showMdlModal = true" title="Sync MyDramaList">
+          <div :class="['avatar-circle', { 'avatar-active': watchedShows.length > 0 }]">
+            <Check v-if="watchedShows.length > 0" size="14" />
+            <span v-else>MDL</span>
+          </div>
         </div>
       </div>
 
@@ -200,12 +279,24 @@ const openTrailer = (title) => {
 
           <!-- BENTO GRID -->
           <div class="bento-grid">
-            <div v-for="(source, index) in sources" :key="index" class="drama-card">
-              
+            <div 
+              v-for="(source, index) in sources" 
+              :key="index" 
+              class="drama-card"
+              :class="{ 'card-top-pick': index === 0 }" 
+              @click="openDetails(source)" 
+            >          
               <!-- Poster -->
               <div class="card-bg">
                 <img :src="source.image_url || 'https://via.placeholder.com/300x450'" loading="lazy" />
                 <div class="overlay-gradient"></div>
+              </div>
+
+              <!-- NEW: Match Level Badge (Top Left) -->
+              <div class="match-badge" :class="getMatchClass(index)">
+                 <span v-if="index === 0">🏆 Top Match</span>
+                 <span v-else-if="index < 3">🔥 High Match</span>
+                 <span v-else>✨ Related</span>
               </div>
 
               <!-- Badges -->
@@ -226,9 +317,16 @@ const openTrailer = (title) => {
                   <button class="action-btn primary" @click.stop="openTrailer(source.title)">
                      <PlayCircle size="16"/> Trailer
                   </button>
-                  <button class="action-btn secondary">
-                     <Bookmark size="16"/>
+
+                  <!-- NEW: Bookmark Button -->
+                  <button 
+                    class="action-btn secondary" 
+                    :class="{ 'bookmarked': bookmarks.has(source.title) }"
+                    @click.stop="toggleBookmark(source)"
+                  >
+                    <Bookmark size="16" :fill="bookmarks.has(source.title) ? 'currentColor' : 'none'" />
                   </button>
+
                 </div>
               </div>
             </div>
@@ -237,6 +335,111 @@ const openTrailer = (title) => {
       </transition>
 
     </main>
+    <!-- MDL SYNC MODAL -->
+    <transition name="fade">
+      <div v-if="showMdlModal" class="modal-overlay" @click.self="showMdlModal = false">
+        <div class="modal-card">
+          <button class="modal-close" @click="showMdlModal = false"><X size="20"/></button>
+          
+          <div class="modal-header">
+            <div class="modal-icon"><Link size="24"/></div>
+            <h3>Sync Your Watchlist</h3>
+          </div>
+          
+          <p class="modal-desc">
+            Paste your MyDramaList username or profile URL. 
+            We will exclude your "Completed" dramas from recommendations.
+          </p>
+          
+          <div class="modal-input-wrapper">
+            <input 
+              v-model="mdlUsername" 
+              placeholder="e.g. mydramalist.com/profile/uwais" 
+              @keydown.enter="syncMDL"
+            />
+          </div>
+
+          <button class="modal-btn" @click="syncMDL" :disabled="isSyncing || !mdlUsername">
+            <Loader2 v-if="isSyncing" class="spin-icon" size="18" />
+            <span v-else>Sync Profile</span>
+          </button>
+
+          <div v-if="syncStatus" class="sync-status" :class="{ error: syncStatus.includes('Error') }">
+            {{ syncStatus }}
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- DETAIL MODAL -->
+    <transition name="fade">
+      <div v-if="selectedDrama" class="modal-overlay" @click.self="selectedDrama = null">
+        <div class="detail-card">
+          <button class="modal-close" @click="selectedDrama = null"><X size="24"/></button>
+          
+          <div class="detail-content">
+            <!-- Left: Poster -->
+            <div class="detail-poster">
+              <img :src="selectedDrama.image_url" alt="Poster" />
+              <div class="detail-badges">
+                 <span v-if="selectedDrama.verdict === 'Underrated'" class="badge under">Underrated Gem</span>
+                 <span v-if="selectedDrama.verdict === 'Overrated'" class="badge over">Overrated</span>
+              </div>
+            </div>
+
+            <!-- Right: Info -->
+            <div class="detail-info">
+              <h2>{{ selectedDrama.title }}</h2>
+              <div class="detail-meta">
+                <span class="pill-year">{{ selectedDrama.year || 'Unknown' }}</span>
+                <span class="pill-rating">★ {{ selectedDrama.rating }}</span>
+              </div>
+
+              <!-- Tropes (Using metadata tags) -->
+              <!-- <div class="detail-tropes" v-if="selectedDrama.tags">
+                 <span v-for="tag in selectedDrama.tags.slice(0, 5)" :key="tag" class="trope-pill">
+                   #{{ tag }}
+                 </span>
+              </div> -->
+
+              <!-- 1. AI Tropes (The "Why") -->
+              <div class="detail-section" v-if="selectedDrama.tropes_str">
+                <span class="label">AI Detected Themes:</span>
+                <div class="pill-container">
+                  <span v-for="trope in parseList(selectedDrama.tropes_str)" :key="trope" class="trope-pill ai-pill">
+                    ✨ {{ trope }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 2. MDL Tags -->
+              <div class="detail-section" v-if="selectedDrama.tags_str">
+                <span class="label">MDL Tags:</span>
+                <div class="pill-container">
+                  <span v-for="tag in parseList(selectedDrama.tags_str).slice(0, 5)" :key="tag" class="trope-pill">
+                    #{{ tag }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="detail-desc">
+                <p>{{ selectedDrama.synopsis || "No synopsis available." }}</p>
+              </div>
+
+              <div class="detail-actions">
+                <button class="full-btn primary" @click="openTrailer(selectedDrama.title)">
+                  <PlayCircle size="18" /> Watch Trailer
+                </button>
+                <button class="full-btn secondary" @click="toggleBookmark(selectedDrama)">
+                  <Bookmark size="18" :fill="bookmarks.has(selectedDrama.title) ? 'currentColor' : 'none'"/>
+                  {{ bookmarks.has(selectedDrama.title) ? 'Saved' : 'Save to List' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -479,4 +682,250 @@ const openTrailer = (title) => {
 
 .fade-up-enter-active { transition: all 0.6s ease-out; }
 .fade-up-enter-from { opacity: 0; transform: translateY(20px); }
+
+/* --- MDL MODAL --- */
+.modal-overlay {
+  position: fixed; inset: 0; 
+  background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.modal-card {
+  background: #0f172a; border: 1px solid var(--glass-border);
+  width: 90%; max-width: 400px;
+  padding: 30px; border-radius: 24px;
+  position: relative;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+  text-align: center;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-close {
+  position: absolute; top: 15px; right: 15px;
+  background: none; border: none; color: #64748b; cursor: pointer;
+  padding: 5px; border-radius: 50%; transition: 0.2s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.modal-header { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 15px; }
+.modal-icon {
+  width: 60px; height: 60px; background: rgba(139, 92, 246, 0.1);
+  color: var(--accent); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.modal-desc { font-size: 0.9rem; color: #94a3b8; line-height: 1.5; margin-bottom: 20px; }
+
+.modal-input-wrapper input {
+  width: 100%; background: #1e293b; border: 1px solid #334155;
+  color: white; padding: 12px; border-radius: 12px;
+  outline: none; margin-bottom: 15px; text-align: center;
+}
+.modal-input-wrapper input:focus { border-color: var(--accent); }
+
+.modal-btn {
+  width: 100%; padding: 12px; background: var(--primary);
+  color: white; font-weight: 600; border: none; border-radius: 12px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: 0.2s;
+}
+.modal-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(217, 70, 239, 0.4); }
+.modal-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+.sync-status { margin-top: 15px; font-size: 0.85rem; color: #10b981; }
+.sync-status.error { color: #ef4444; }
+
+.avatar-active {
+  border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.1);
+}
+
+@keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.spin-icon { animation: spin 1s linear infinite; }
+
+/* --- MDL PROFILE ICON --- */
+.user-profile {
+  cursor: pointer; /* Fixes the 'text cursor' issue */
+  position: relative;
+  margin-left: 10px;
+}
+
+.avatar-circle {
+  width: 35px; height: 35px; 
+  background: rgba(0,0,0,0.5); 
+  border: 1px solid var(--glass-border);
+  border-radius: 50%; 
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700; color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy transition */
+}
+
+/* Hover Feedback: Glow + Pop */
+.user-profile:hover .avatar-circle {
+  border-color: var(--primary);
+  color: white;
+  background: var(--primary-glow); /* Uses the glow variable we defined in main.css */
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+/* Active State (When synced) */
+.avatar-active {
+  border-color: #10b981 !important; 
+  color: #10b981 !important; 
+  background: rgba(16, 185, 129, 0.15) !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+/* BOOKMARK ACTIVE STATE */
+.bookmarked {
+  color: var(--primary) !important;
+  background: rgba(217, 70, 239, 0.1) !important;
+  border: 1px solid var(--primary);
+}
+
+/* DETAIL MODAL STYLES */
+.detail-card {
+  background: #0f172a; 
+  border: 1px solid var(--glass-border);
+  width: 90%; max-width: 800px;
+  border-radius: 24px;
+  position: relative;
+  box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
+  overflow: hidden;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .detail-content { flex-direction: row; }
+}
+
+/* POSTER SIDE */
+.detail-poster {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: #000;
+}
+@media (min-width: 768px) {
+  .detail-poster { width: 40%; height: auto; min-height: 450px; }
+}
+
+.detail-poster img {
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0.8;
+}
+.detail-badges {
+  position: absolute; bottom: 15px; left: 15px;
+  display: flex; gap: 8px;
+}
+
+/* INFO SIDE */
+.detail-info {
+  padding: 30px;
+  flex: 1;
+  display: flex; flex-direction: column; gap: 15px;
+}
+
+.detail-info h2 { font-family: 'Space Grotesk', sans-serif; font-size: 2rem; line-height: 1.1; margin-bottom: 5px; }
+
+.detail-meta { display: flex; gap: 10px; align-items: center; }
+.pill-year { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; }
+.pill-rating { color: #facc15; font-weight: bold; font-size: 0.9rem; }
+
+.detail-tropes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.trope-pill { 
+  font-size: 0.75rem; color: var(--accent); 
+  background: rgba(139, 92, 246, 0.1); 
+  padding: 4px 8px; border-radius: 100px;
+}
+
+.detail-desc {
+  flex: 1; overflow-y: auto; max-height: 200px;
+  color: #94a3b8; line-height: 1.6; font-size: 0.95rem;
+  padding-right: 10px;
+  /* Scrollbar styling */
+  scrollbar-width: thin; scrollbar-color: #333 transparent;
+}
+
+.detail-actions { display: flex; gap: 10px; margin-top: 20px; }
+.full-btn {
+  flex: 1; padding: 12px; border-radius: 12px; border: none; cursor: pointer;
+  font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: 0.2s;
+}
+.full-btn.primary { background: white; color: black; }
+.full-btn.primary:hover { background: var(--primary); color: white; }
+.full-btn.secondary { background: rgba(255,255,255,0.1); color: white; }
+.full-btn.secondary:hover { background: rgba(255,255,255,0.2); }
+
+.detail-section { margin-bottom: 15px; }
+.label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 5px; font-weight: bold; }
+
+.pill-container { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.trope-pill { 
+  font-size: 0.75rem; color: #94a3b8; 
+  border: 1px solid #334155;
+  padding: 4px 10px; border-radius: 100px;
+}
+
+/* Special Style for AI Tropes to make them stand out */
+.ai-pill {
+  border-color: var(--primary);
+  color: #f0abfc; /* Light Purple */
+  background: rgba(217, 70, 239, 0.1);
+}
+
+/* --- TOP PICK GLOW --- */
+.card-top-pick {
+  border: 2px solid #fbbf24 !important; /* Gold Border */
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.2);
+  transform: scale(1.02); /* Make it slightly bigger by default */
+}
+.card-top-pick:hover {
+  transform: scale(1.05) translateY(-8px);
+  box-shadow: 0 0 50px rgba(251, 191, 36, 0.4);
+}
+
+/* --- MATCH BADGES --- */
+.match-badge {
+  position: absolute; top: 10px; left: 10px;
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 100px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 5;
+}
+
+.match-top {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  color: black;
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+.match-high {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.match-base {
+  background: rgba(0, 0, 0, 0.4);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Move the existing badges to Top Right */
+.badges {
+  left: auto; /* Reset left */
+  right: 10px; /* Move to right */
+  align-items: flex-end;
+}
 </style>
