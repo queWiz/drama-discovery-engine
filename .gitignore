@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 venv/
 __pycache__/
-*.db
 .env
 
 # C extensions
@@ -210,13 +209,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Ignore ChromaDB vector store
-chroma_db/
-chroma.sqlite3
-*.bin
 
-# Ignore SQLite database
-*.db
 
 # Ignore Python cache
 __pycache__/
