@@ -2,6 +2,7 @@ import cloudscraper
 from bs4 import BeautifulSoup
 import time
 import random
+import re
 
 # NEW URL: Advanced Search (Korean, Drama, Completed, Top Rated)
 # This allows deep pagination (hundreds of pages)
@@ -84,19 +85,31 @@ def scrape_show_details(url):
                 try: rating = float(rating_box.text.strip())
                 except: pass
 
+        # 6. YEAR (NEW LOGIC)
+        year = 0
+        # Look for the "Aired:" label in the sidebar
+        aired_label = soup.find('b', string='Aired:')
+        if aired_label and aired_label.parent:
+            aired_text = aired_label.parent.get_text() # e.g. "Aired: May 14, 2021"
+            # Use Regex to find a 4-digit number
+            match = re.search(r'\d{4}', aired_text)
+            if match:
+                year = int(match.group(0))
+
         return {
             "synopsis": synopsis,
             "image_url": image_url,
             "reviews": reviews_text,
             "genres": genres,   
             "tags": tags,       
-            "rating": rating    
+            "rating": rating,
+            "year": year
         }
     except Exception as e:
         print(f"Error fetching details from {url}: {e}")
         return None
 
-def scrape_top_dramas(num_pages=1):
+def scrape_top_dramas(num_pages=1, existing_titles=set()):
     all_shows = []
     
     for page in range(1, num_pages + 1):
@@ -137,6 +150,13 @@ def scrape_top_dramas(num_pages=1):
                     if not title_link: continue
 
                     title = title_link.text.strip()
+
+                    # --- OPTIMIZATION CHECK ---
+                    if title in existing_titles:
+                        print(f"⏩ Skipping existing: {title}")
+                        continue
+                    # --------------------------
+
                     details_link = "https://mydramalist.com" + title_link['href']
                     
                     show_details = scrape_show_details(details_link)

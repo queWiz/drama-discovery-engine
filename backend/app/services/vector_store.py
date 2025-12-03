@@ -36,8 +36,12 @@ def index_shows():
 
     documents = []
     for show in shows:
-        # Convert tropes list to string, or empty string if None
-        tropes_str = ", ".join(show.tropes) if show.tropes else ""
+        # Ensure tropes/tags are lists before joining (handling None cases)
+        safe_tropes = show.tropes if show.tropes else []
+        safe_tags = show.tags if show.tags else []
+
+        tropes_str = ", ".join(safe_tropes)
+        tags_str = ", ".join(safe_tags)
 
         # We combine title, genres, and synopsis into one block of text
         # This gives the AI the full context of the show.
@@ -45,6 +49,7 @@ def index_shows():
         # This makes the search engine MUCH smarter.
         page_content = f"""
         Title: {show.title}
+        Year: {show.year} 
         Genres: {', '.join(show.genres)}
         Tags: {', '.join(show.tags)}
         Tropes: {tropes_str}
@@ -61,7 +66,11 @@ def index_shows():
                 "title": show.title,
                 "image_url": show.image_url or "",
                 "rating": show.rating or 0.0,
-                "verdict": show.verdict or "Rated Fairly"
+                "year": show.year or 0,
+                "verdict": show.verdict or "Rated Fairly",
+                "synopsis": show.synopsis or "No synopsis available.",
+                "tropes_str": tropes_str, # Stored as comma-separated string
+                "tags_str": tags_str
             }
         )
         documents.append(doc)

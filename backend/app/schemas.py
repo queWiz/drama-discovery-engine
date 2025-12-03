@@ -11,6 +11,7 @@ class ShowBase(BaseModel):
     genres: List[str] = []
     tags: List[str] = []      # <--- New
     rating: Optional[float] = 0.0 # <--- New
+    year: Optional[int] = 0
     
     tropes: Optional[List[str]] = None
     verdict: Optional[str] = None # <--- New
