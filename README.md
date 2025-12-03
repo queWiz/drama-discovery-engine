@@ -1,28 +1,46 @@
 # 🎬 Drama Discovery Engine
 
-> A RAG-powered recommendation engine that understands narrative tropes, not just metadata.
+> **An AI-powered RAG search engine that finds K-Dramas based on vibes, tropes, and narrative context.**
 
-[![Demo Video](link_to_gif_or_thumbnail)](link_to_video)
+🔴 **[![Demo Video](link_to_gif_or_thumbnail)](link_to_video)**
+
+![Project Banner](link_to_a_screenshot_of_your_ui.png)
 
 ## 🚀 The Problem
-Generic search engines (like MyDramaList) rely on static tags. They can't answer "I want a show that feels like *Goblin* but with a happier ending." LLMs (like ChatGPT) hallucinate shows that don't exist.
+Traditional search engines (MyDramaList, Netflix) rely on static metadata. They fail at answering human queries like:
+> *"I want a thriller about corruption with a cold male lead who softens up, released after 2020."*
+
+LLMs (ChatGPT) hallucinate shows that don't exist.
 
 ## 💡 The Solution
-I built a **Hybrid Search Engine** that combines:
-1.  **Determinism:** SQL filtering for hard constraints (Rating, Year).
-2.  **Semantics:** Vector Search (ChromaDB) for narrative vibes.
-3.  **Data Enrichment:** An offline AI Agent that analyzes user reviews to tag shows as "Underrated" or "Overrated" and extracts tropes not found in official metadata.
+I engineered a **Hybrid Search System** that combines:
+1.  **Deterministic Filtering:** SQL constraints for Rating, Year, and Genre.
+2.  **Semantic Search:** Vector Embeddings (ChromaDB) to understand narrative "vibes."
+3.  **Data Enrichment Agent:** An offline LLM pipeline that analyzes thousands of user reviews to tag shows as **"Underrated"** or **"Overrated"** and extract tropes not found in official metadata.
 
 ## 🛠️ Tech Stack
-*   **AI/LLM:** Google Gemini 2.5 Flash, LangChain, HuggingFace Embeddings
-*   **Vector DB:** ChromaDB
-*   **Backend:** FastAPI, SQLAlchemy (SQLite), Cloudscraper
-*   **Frontend:** Vue 3, Lucide Icons, Glassmorphism UI
+*   **Frontend:** Vue 3, Vite, Tailwind-style CSS (Glassmorphism), Lucide Icons.
+*   **Backend:** FastAPI, Python.
+*   **AI & Data:** Google Gemini 2.5 Flash, LangChain, HuggingFace Embeddings, ChromaDB (Vector Store), SQLite.
+*   **Data Pipeline:** Custom `Cloudscraper` implementation for deep pagination and metadata extraction.
 
-## 🏗️ Architecture
-[Insert Screenshot of Excalidraw Diagram here]
+## 🏗️ System Architecture
+
+![Architecture Diagram](link_to_your_excalidraw_image.png)
+
+1.  **Ingestion:** Scraper collects data + reviews from MyDramaList.
+2.  **Analysis Agent:** Gemini Flash analyzes reviews -> Extracts "Verdict" & "Tropes" -> Updates SQL.
+3.  **Indexing:** Data is embedded into ChromaDB.
+4.  **Inference:** User Query -> Hybrid Filter -> RAG Retrieval -> Gemini Synthesis -> UI.
 
 ## ✨ Key Features
-*   **Trope Hunter:** Offline agent analyzes thousands of reviews to identify specific tropes (e.g., "Contract Marriage").
-*   **Verdict System:** AI acts as a critic to label shows based on the disparity between Rating and Sentiment.
-*   **Deep Pagination:** Custom scraper capable of ingesting unlimited datasets from MDL.
+*   **🏆 Hybrid Search:** Filters by Year/Rating (Hard filter) + Plot Description (Soft filter).
+*   **🧠 Trope Hunter:** AI detects specific themes like *#ContractMarriage* or *#Revenge* from user reviews.
+*   **⚖️ Community Verdict:** System calculates if a show is "Underrated" based on the disparity between official score and review sentiment.
+*   **🍿 Rich UI:** "Netflix-style" carousel, dynamic poster fetching, and bookmarking system.
+
+## ⚡ How to Run Locally
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/yourusername/drama-discovery-engine.git
