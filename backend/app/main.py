@@ -5,6 +5,7 @@ from .database import engine
 from .routers import shows # Import the new router
 from pydantic import BaseModel
 from .services.chat_service import get_chat_response
+from .services.user_scraper import scrape_user_watchlist
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -31,7 +32,8 @@ class ChatRequest(BaseModel):
     genre: str | None = "All"
     rating: int | None = 0
     year: str | None = "All"    # Values: "All", "2020+", "2015-2019", "Classic"
-    trope: str | None = None
+    trope: str | None = None,
+    watched_history: list[str] = []
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
@@ -44,3 +46,11 @@ def chat_endpoint(request: ChatRequest):
         request.trope
     )
     return result
+
+class UserProfileRequest(BaseModel):
+    profile_url: str
+
+@app.post("/user/sync")
+def sync_user_profile(request: UserProfileRequest):
+    titles = scrape_user_watchlist(request.profile_url)
+    return {"watched_titles": titles, "count": len(titles)}
