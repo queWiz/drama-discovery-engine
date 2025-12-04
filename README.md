@@ -2,9 +2,10 @@
 
 > **An AI-powered RAG search engine that finds K-Dramas based on vibes, tropes, and narrative context.**
 
-🔴 **[![Demo Video](link_to_gif_or_thumbnail)](link_to_video)**
+<!-- The GIF Display -->
+![App Demo](assets/demo-walkthrough.gif)
 
-![Project Banner](link_to_a_screenshot_of_your_ui.png)
+🔴 **[Live Demo](https://drama-discovery-engine.vercel.app)**
 
 ## 🚀 The Problem
 Traditional search engines (MyDramaList, Netflix) rely on static metadata. They fail at answering human queries like:
@@ -26,7 +27,7 @@ I engineered a **Hybrid Search System** that combines:
 
 ## 🏗️ System Architecture
 
-![Architecture Diagram](link_to_your_excalidraw_image.png)
+![System Architecture](assets/architecture-diagram.png)
 
 1.  **Ingestion:** Scraper collects data + reviews from MyDramaList.
 2.  **Analysis Agent:** Gemini Flash analyzes reviews -> Extracts "Verdict" & "Tropes" -> Updates SQL.
