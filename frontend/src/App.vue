@@ -928,4 +928,96 @@ const openTrailer = (title) => {
   right: 10px; /* Move to right */
   align-items: flex-end;
 }
+
+/* =========================================
+   MOBILE RESPONSIVENESS OVERRIDES
+   Add this to the very bottom of your CSS
+   ========================================= */
+
+@media (max-width: 768px) {
+  /* 1. Header Adjustments */
+  .search-island {
+    width: 95%; /* Use full width */
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  
+  .logo {
+    display: none; /* Hide logo on phone to give space to search bar */
+  }
+
+  .hero-section h1 {
+    font-size: 2.5rem; /* Smaller hero text */
+  }
+
+  /* 2. Grid Layout (2 Columns instead of dynamic) */
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr); /* Force 2 columns */
+    gap: 10px;
+  }
+
+  .drama-card {
+    height: 250px; /* Shorter cards */
+  }
+
+  /* 3. Card Content (Disable Hover Effects for Mobile) */
+  /* On phone, you can't "hover", so we always show the title */
+  .card-content {
+    transform: translateY(0) !important; /* Always show */
+    padding: 10px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 20%, transparent);
+  }
+
+  /* Hide the "Trailer/Bookmark" buttons on card cover (too small to tap) */
+  /* Users can use the buttons inside the Modal instead */
+  .actions {
+    display: none !important;
+  }
+
+  /* Adjust Text Sizes */
+  .card-content h3 {
+    font-size: 0.9rem;
+    white-space: normal; /* Allow wrapping */
+    line-height: 1.2;
+  }
+  
+  .meta-row {
+    margin-bottom: 0;
+  }
+
+  /* 4. Modal (Stack Vertically) */
+  .detail-card {
+    width: 95%;
+    max-height: 85vh; /* Prevent overflowing screen */
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-content {
+    flex-direction: column; /* Stack Poster on top of Info */
+  }
+
+  .detail-poster {
+    width: 100%;
+    height: 200px; /* Short header image */
+    min-height: auto;
+  }
+
+  .detail-info {
+    padding: 20px;
+    overflow-y: auto; /* Scroll info if long */
+  }
+
+  .detail-info h2 {
+    font-size: 1.5rem;
+  }
+  
+  /* 5. Filter Drawer */
+  .filter-drawer {
+    width: 95%;
+    grid-template-columns: 1fr; /* Stack filters vertically */
+    padding: 15px;
+  }
+}
 </style>
